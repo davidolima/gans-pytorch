@@ -2,25 +2,30 @@ import torch
 import torch.nn as nn
 import torchvision
 
-class Generator(nn.Module):
+from abc import ABC
+
+class BaseGenerator(ABC, nn.Module):
     """
-    Generator: Model takes noise as input and generates a 2D image as output,
-    latent_dim: the size of noise data taken as input.
-    img_shape: shape of output image.
+    Base class for the Generator, a model that generates 2D images from noise.
+    params:
+     - img_shape: Input image size.
+     - img_channels: Number of input image channels.
+     - latent_dim: the size of noise data taken as input.
     """
     def __init__(self, latent_dim, img_size, img_channels):
-        super(Generator, self).__init__()
+        super(BaseGenerator, self).__init__()
 
         self.img_size = img_size
         self.img_channels = img_channels
         self.latent_dim = latent_dim
 
-        self.init_size = img_size // 4
+        self.init_size = 4
 
         self.linear = nn.Linear(self.latent_dim, self.img_channels*self.init_size*self.init_size)
         self.deconv_blocks = nn.Sequential(
             *self._deconv_block(1, 2),
-            *self._deconv_block(2, self.img_channels),
+            *self._deconv_block(2, 4),
+            *self._deconv_block(4, self.img_channels),
         )
         self.tanh = nn.Tanh()
 
@@ -44,11 +49,3 @@ class Generator(nn.Module):
         x = self.deconv_blocks(x)
         x = self.tanh(x)
         return x
-
-if __name__ == "__main__":
-    G = Generator(100, 224, 1)
-    print(G)
-
-    noise = torch.rand((8, 1, 100))
-    output = G(noise)
-    print("output shape:", output.shape)

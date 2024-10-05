@@ -2,13 +2,18 @@ import torch
 import torch.nn as nn
 import torchvision
 
-class Discriminator(nn.Module):
+from abc import ABC
+
+class BaseDiscriminator(nn.Module, ABC):
     """
-    Discriminator: Model takes real images from training data and fake images by Generator and tries seperate them.
-    img_shape: Input image shape.
+    Base class for the Discriminator, a model that learns to dicern real images
+    from training data and fake images.
+    params:
+     - img_shape: Input image size.
+     - img_channels: Number of input image channels.
     """
     def __init__(self, img_size, img_channels):
-        super(Discriminator, self).__init__()
+        super(BaseDiscriminator, self).__init__()
 
         self.img_size = img_size
         self.img_channels = img_channels
@@ -29,7 +34,7 @@ class Discriminator(nn.Module):
             *discriminator_block(8, 16),
         )
 
-        ds_size = img_size // 2**4
+        #ds_size = img_size // 2**4
         self.output_layer = nn.Sequential(
             nn.Flatten(),
             nn.Linear(256, 1),
@@ -40,11 +45,3 @@ class Discriminator(nn.Module):
         x = self.conv_blocks(x)
         x = self.output_layer(x)
         return x
-
-if __name__ == "__main__":
-    D = Discriminator(28, 1).to('cuda')
-    print(D)
-
-    pretend_img = torch.rand((8, 1, 28, 28), device='cuda')
-    output = D(pretend_img)
-    print("output shape:", output.shape)
