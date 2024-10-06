@@ -83,7 +83,7 @@ class BaseGAN(ABC):
         self.disc_optimizer.zero_grad()
         real_loss = criterion(self.forward_disc(image_batch.float().to(device)), real)
         fake_loss = criterion(self.forward_disc(fake_batch.detach()), fake)
-        disc_loss = (real_loss + fake_loss) / 2
+        disc_loss = real_loss + fake_loss
 
         disc_loss.backward()
         self.disc_optimizer.step()
@@ -116,12 +116,14 @@ class BaseGAN(ABC):
         - save_on_last_epoch: Whether to save the model after the model finished training or not.
              Weights are saved in path `output_dir`/weights/
         """
+        # TODO: Resume from checkpoint.
         #writer = SummaryWriter(log_dir=f".logs/dcgan/{strftime('%d%m%Y_%H%M%S')}")
         print(f"[!] Running on {device}.")
 
         os.makedirs(output_dir, exist_ok=True)
 
-        best_gen_loss = float("inf")
+        best_gen_loss = -float("inf")
+        fixed_sampling_noise = self.generate_noise(torch.Tensor(16, self.generator_latent_dim), device) if sampling_interval != 0 else None
 
         progress_bar = tqdm(range(n_epochs))
         for epoch in progress_bar:
@@ -130,7 +132,7 @@ class BaseGAN(ABC):
                 images.to(device)
                 fake_images, gen_loss, disc_loss = self.train_step(
                     image_batch=images,
-                    criterion=nn.BCELoss(),
+                    criterion=nn.BCEWithLogitsLoss(),
                     device=device
                 )
                 mean_gen_loss  += gen_loss.item()
@@ -140,7 +142,7 @@ class BaseGAN(ABC):
             mean_gen_loss, mean_disc_loss = mean_gen_loss/batch_size, mean_disc_loss/batch_size
             progress_bar.set_description(f"G Loss: {mean_gen_loss} D Loss: {mean_disc_loss}")
 
-            if save_best_model and mean_gen_loss < best_gen_loss:
+            if save_best_model and mean_gen_loss > best_gen_loss:
                 print(f"[!] New best generator loss: {best_gen_loss} -> {mean_gen_loss}.")
                 cp_path = os.path.join(output_dir, "weights")
                 os.makedirs(cp_path, exist_ok=True)
@@ -150,14 +152,18 @@ class BaseGAN(ABC):
                 best_gen_loss = mean_gen_loss
 
             if sampling_interval != 0 and epoch % sampling_interval == 0:
+                assert fixed_sampling_noise is not None, "Unreachable."
                 sample_path = os.path.join(output_dir, "samples")
                 os.makedirs(sample_path, exist_ok=True)
+                fname = os.path.join(sample_path, f"epoch-{epoch}-{datetime.datetime.today()}.png")
+                print(f"[!] Saving sample to file `{fname}`...")
                 save_image(
-                    fake_images.data[:25],
+                    self.forward_gen(fixed_sampling_noise),
                     os.path.join(sample_path, f"epoch-{epoch}-{datetime.datetime.today()}.png"),
-                    nrow=5,
+                    nrow=4,
                     normalize=True,
                 )
+
         if save_on_last_epoch:
             print(f"[!] Training complete, saving last model.")
             cp_path = os.path.join(output_dir, "weights")
