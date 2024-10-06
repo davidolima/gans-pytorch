@@ -2,7 +2,7 @@
 
 import argparse
 
-from torch import cuda
+import torch
 from torch.optim import AdamW
 from models.DCGAN.dcgan import DCGAN
 
@@ -12,7 +12,7 @@ import torchvision.transforms as T
 from torchvision.datasets import MNIST
 
 DEFAULT_MODEL = "dcgan"
-DEFAULT_EPOCHS = 25
+DEFAULT_EPOCHS = 50
 DEFAULT_LR = 1e-5
 DEFAULT_BATCH_SIZE = 64
 DEFAULT_GEN_BLOCKS = 3
@@ -21,7 +21,7 @@ DEFAULT_LATENT_DIM = 100
 DEFAULT_SAMPLING_INTERVAL = 5
 DEFAULT_DONT_SAVE_BEST = False
 DEFAULT_DONT_SAVE_LAST = False
-DEFAULT_DEVICE = "cuda" if cuda.is_available() else "cpu"
+DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 def get_cli_args():
     parser = argparse.ArgumentParser(description="Train GAN on MNIST Dataset.")
@@ -33,7 +33,7 @@ def get_cli_args():
     )
     parser.add_argument(
         "-e", "--epochs",
-        type=float, default=DEFAULT_EPOCHS,
+        type=int, default=DEFAULT_EPOCHS,
         help=f"Number of training iterations over dataset. (Default: {DEFAULT_EPOCHS})"
     )
     parser.add_argument(
@@ -86,9 +86,15 @@ def get_cli_args():
 
 if __name__ == "__main__":
     args = get_cli_args()
+    print("--------------------\nCurrent Configuration:")
+    for key, value in args.__dict__.items():
+        print(f"  {key}: {value}")
+    print("--------------------")
 
     transforms = T.Compose([
-        T.PILToTensor()
+        T.PILToTensor(),
+        lambda x: x.float(),
+        T.Normalize(0.5, 0.5)
     ])
 
     train_set = MNIST(
@@ -115,8 +121,8 @@ if __name__ == "__main__":
             shuffle=True,
         ),
         output_dir="./output",
-        n_epochs=25,
-        sampling_interval=1,
+        n_epochs=args.epochs,
+        sampling_interval=args.sampling_interval,
         device=args.device,
         save_best_model=not args.dont_save_best,
         save_on_last_epoch=not args.dont_save_last,
