@@ -1,4 +1,3 @@
-
 import os
 from typing import *
 from tqdm import tqdm
@@ -11,8 +10,8 @@ from torch.utils.data import DataLoader
 import torchvision
 from torchvision.utils import save_image
 
-from .BaseGenerator import BaseGenerator
-from .BaseDiscriminator import BaseDiscriminator
+from models.BaseGenerator import BaseGenerator
+from models.BaseDiscriminator import BaseDiscriminator
 
 from abc import ABC
 
@@ -26,7 +25,6 @@ class BaseGAN(ABC):
             discriminator: BaseDiscriminator,
             disc_optimizer,
             lr: float = 1e-5,
-            n_generator_blocks: int = 3,
             generator_latent_dim: int = 100,
             device: Literal["cuda", "cpu"] = 'cuda'
     ) -> None:
@@ -35,7 +33,6 @@ class BaseGAN(ABC):
         self.img_size = img_size
         self.img_channels = img_channels
         self.generator_latent_dim = generator_latent_dim
-        self.n_generator_blocks = n_generator_blocks
 
         self.generator = generator
         self.generator.to(device)

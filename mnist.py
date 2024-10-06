@@ -16,6 +16,7 @@ if __name__ == "__main__":
         disc_optimizer=AdamW,
         lr=1e-5,
         n_generator_blocks=3,
+        n_discriminator_blocks=3,
         generator_latent_dim=100,
     )
 

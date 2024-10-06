@@ -1,4 +1,3 @@
-import os
 from typing import *
 from tqdm import tqdm
 import datetime
@@ -10,9 +9,9 @@ from torch.utils.data import DataLoader
 import torchvision
 from torchvision.utils import save_image
 
-from ..BaseGAN import BaseGAN
-from .generator import Generator
-from .discriminator import Discriminator
+from models.BaseGAN import BaseGAN
+from models.DCGAN.generator import Generator
+from models.DCGAN.discriminator import Discriminator
 
 class DCGAN(BaseGAN):
     def __init__(
@@ -23,6 +22,7 @@ class DCGAN(BaseGAN):
             disc_optimizer,
             lr: float = 1e-5,
             n_generator_blocks: int = 3,
+            n_discriminator_blocks: int = 3,
             generator_latent_dim: int = 100,
             device: Literal["cuda", "cpu"] = 'cuda'
     ) -> None:
@@ -30,21 +30,25 @@ class DCGAN(BaseGAN):
             img_size=img_size,
             img_channels=img_channels,
             generator = Generator(
-                generator_latent_dim,
-                img_size,img_channels
+                img_size=img_size, img_channels=img_channels,
+                n_blocks = n_generator_blocks,
+                latent_dim=generator_latent_dim,
             ),
             gen_optimizer=gen_optimizer,
             discriminator= Discriminator(
-                img_size, img_channels
+                img_size=img_size, img_channels=img_channels,
+                n_blocks = n_discriminator_blocks,
+                starting_dim=8,
             ),
             disc_optimizer=disc_optimizer,
             lr=lr,
-            n_generator_blocks=n_generator_blocks,
-            generator_latent_dim=generator_latent_dim,
             device=device,
         )
 
 if __name__ == "__main__":
+    import sys
+    import os
+    sys.path.append(os.path.abspath('..'))
     from torch.optim import AdamW
 
     gan = DCGAN(
